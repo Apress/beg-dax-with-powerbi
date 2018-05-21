@@ -1,0 +1,2230 @@
+CHAPTER 1
+	-----------------------------------------------------	
+1.2
+	Sum of Total including Tax = SUM('Fact Sales'[Total Including Tax])
+
+	-----------------------------------------------------	
+1.3	
+	Mesure = DATEDIFF(
+				-- This is the first argument
+				TODAY() ,
+				// This is the second argument
+				DATE(2017,12,24) ,
+				/* This is the final argument */
+				DAY
+				)
+				
+	-----------------------------------------------------	
+
+1.4
+	Average Item Price = DIVIDE(
+							'Fact Sale'[Total Including Tax],
+							'Fact Sale'[Quantity]
+							)
+
+	-----------------------------------------------------	
+1.6
+	Dates2 = Dates
+	
+	-----------------------------------------------------	
+1.7
+	Dates2 = FILTER(
+				Dates,
+				'Dates'[Calendar Year] = 2016
+				)
+
+	-----------------------------------------------------	
+1.8
+	Dates = CALENDARAUTO()
+	
+	
+	VAR WholeNumberA = 3 
+	VAR WholeNumberB = 2 
+	RETURN DIVIDE( WholeNumberA, WholeNumberB ) // will be stored as 1.5
+	
+	
+	Measure1 = 100000000000000000 + 50
+					
+	Measure2 = [Measure1] + 50
+	
+	TIME(1,0,0) + "03:00:00"
+
+	-----------------------------------------------------	
+
+CHAPTER 2
+
+	VAR myVar1 = 1 
+	VAR myVar2 = myVar1 + 2 
+	RETURN myVar2 * 2	
+	
+	-----------------------------------------------------	
+	
+	Table =
+		NATURALINNERJOIN(
+			'Sales',
+			TOPN(
+				10,
+				SUMMARIZECOLUMNS(
+					'Sales'[Product],
+					"Sum of Revenue", SUM('Sales'[Total])
+					),
+				[Sum of Revenue],
+				DESC)	
+				)
+	
+	-----------------------------------------------------	
+	
+	Table = 
+	VAR InnerGroup =
+		SUMMARIZECOLUMNS(
+			-- Group BY -
+			'Sales'[Product],
+			-- Aggregation Column -
+			"Sum of Revenue", SUM('Sales'[Total])
+			)
+
+	VAR Top10PRoducts =
+		TOPN(
+			10,
+			InnerGroup,
+			[Sum of Revenue],
+			DESC
+			)
+
+	RETURN
+		NATURALINNERJOIN(
+			'Sales',
+			Top10PRoducts
+			)
+	
+	-----------------------------------------------------	
+	
+	My Measure = 
+	VAR textVar1 = "Hello " 
+	VAR textVar2 = "World" 
+	RETURN CONCATENATE(textVar1,textVar2)
+	
+	-----------------------------------------------------	
+	
+	Sales Text = 
+	VAR SalesQty = SUM('Fact Sale'[Quantity]) 
+	VAR Text1 = "This month we sold " 
+	VAR Text2 = " Items" 
+	VAR Result = IF(
+				SalesQty > 0,
+				-- THEN -
+				Text1 & SalesQty & Text2,
+				-- ELSE -
+				"No sales this month"
+				)
+	RETURN Result
+	
+	-----------------------------------------------------	
+2.1	
+	Greeting = 
+	VAR CurrentHour = HOUR(NOW()) 
+	VAR GreetingText =    
+		SWITCH(
+			TRUE(),
+			CurrentHour<12,"Morning",
+			CurrentHour<17,"Afternoon",
+			"Evening"
+			) 
+	RETURN   
+		"Good " & GreetingText & ", " & USERNAME()
+	
+	-----------------------------------------------------	
+
+	City and Country = 
+	VAR city = 'Dimension City'[City]
+	VAR country = 'Dimension City'[Country] 
+	RETURN
+		city & ", " & country
+
+	-----------------------------------------------------
+2.2	
+	Total Sales > $100 = 
+	VAR SalesAbove100 =
+		FILTER(
+			-- Filter Table -
+			'Fact Sale',
+			-- Filter Condition -
+			'Fact Sale'[Total Including Tax]>=100
+			) 
+	RETURN COUNTROWS(SalesAbove100)
+	
+	-----------------------------------------------------	
+2.3
+	Sales Summary = 
+	VAR SalesTableWithCustKey =
+		FILTER(
+			-- Filter Table -
+			'Fact Sale',
+			-- Fitler Condition -
+			'Fact Sale'[Customer Key]>0
+			) 
+	VAR SalesTableGrouped =
+		SUMMARIZE(
+			-- Table to Summarize -
+			SalesTableWithCustKey,
+			-- Columns to Group By -
+			'Fact Sale'[Customer Key],
+			-- Aggretated Column Name & Expression -
+			"Total Spend",SUM('Fact Sale'[Total Including Tax])
+			)
+	VAR SummaryTableFiltered =
+		TOPN(
+			-- Number of rows to return
+			10,
+			-- Table to filter -
+			SalesTableGrouped,
+			-- Order by Expression
+			[Total Spend]
+			)
+	RETURN SummaryTableFiltered
+
+	-----------------------------------------------------	
+2.4
+	SELECT
+		 *
+	INTO #SalesTableWithCustKey
+	FROM Fact.Sale
+	WHERE
+		[Customer Key] > 0
+		
+	SELECT
+		[Customer Key],
+		SUM([Total Including Tax]) AS [Total Spend]
+	INTO #SalesTableGrouped
+	FROM #SalesTableWithCustKey
+	GROUP BY
+		  [Customer Key]
+	
+	SELECT TOP 10
+		  *
+	INTO #SummaryTableFiltered
+	FROM #SalesTableGrouped
+	ORDER BY
+		  [Total Spend] DESC
+	SELECT * FROM #SummaryTableFiltered
+		
+	-----------------------------------------------------	
+2.5	
+	Nested Measure =
+	VAR Level1a = 10
+	VAR Level1b =
+			VAR level2a = Level1a
+			VAR Leval2b = level2a * 3
+			RETURN Leval2b
+	RETURN Level1b
+	
+	-----------------------------------------------------	
+2.6
+	Nested Measure 2 =
+	VAR Level1a = 10
+	VAR Level1b =
+			VAR level2a = 20
+			VAR level2b =
+				VAR Leve3a = Level2a + Level1a
+				RETURN Level1a
+			RETURN level2b
+	VAR Level1c =
+			VAR Level4a =  Level1b * 5
+			RETURN Level4a
+	RETURN Level1c
+
+	-----------------------------------------------------
+2.7
+	Demo Table =
+	VAR Level1 =
+		SUMMARIZE(
+			FILTER(
+				'Fact Sale',
+				[Quantity] >
+						VAR Level2 = DAY(TODAY())
+						RETURN IF(
+								  Level2 > 10,
+								   -- Then --
+								   20,
+								  -- Else --
+								  30
+								  )
+	 
+				),
+				-- Group by Columns --
+				[City],
+				-- Aggregations Columns --
+				"Sum of Quantity",sum('Fact Sale'[Quantity]))
+	RETURN
+		TOPN(
+			VAR Level2 = 5
+			RETURN Level2,
+			Level1,
+			[City]
+			)
+	
+	-----------------------------------------------------	
+CHAPTER 3	
+	Sales Qty = SUM('Fact Sale'[Quantity])
+	
+	-----------------------------------------------------	
+	
+	SELECT
+		SUM(Quantity) AS [Sales Qty]
+	FROM Fact.Sale;
+	
+	-----------------------------------------------------	
+3.1
+	SELECT
+		  SUM([Quantity]) AS [Sales Qty]
+	FROM FACT.Sale AS S
+	
+	   INNER JOIN Dimension.City AS C
+			 ON C.[City Key] = S.[City Key]
+	   INNER JOIN Dimension.Date AS D
+			 ON D.Date = S.[Invoice Date Key]
+
+			 WHERE
+		   C.[Sales Territory] = 'Far West'
+		   AND D.[Calendar Year] = 2013
+	
+	-----------------------------------------------------
+3.2
+	SELECT
+      SUM([Quantity]) AS [Sales Qty]
+	FROM FACT.Sale AS S
+		  INNER JOIN Dimension.City AS C
+				 ON C.[City Key] = S.[City Key]
+		  INNER JOIN Dimension.Date AS D
+				 ON D.Date = S.[Invoice Date Key]
+	WHERE
+		  C.[Sales Territory] = 'Far West'       
+		  AND D.[Calendar Year] = 2014
+
+	-----------------------------------------------------	
+3.3
+	SELECT
+      SUM([Quantity]) AS [Sales Qty]
+	FROM FACT.Sale AS S
+		  INNER JOIN Dimension.City AS C
+				 ON C.[City Key] = S.[City Key]
+	WHERE
+		  C.[Sales Territory] = 'Far West'
+
+
+	-----------------------------------------------------
+3.4
+	Sum of Quantity =
+		IF(
+			SELECTEDVALUE('Dimension Date'[Calendar Year])=2014,
+			-- THEN --
+			"overridden",
+			-- ELSE --
+			FORMAT(
+				SUM('Fact Sale'[Quantity]),"#,000"
+				)
+			)
+	
+	-----------------------------------------------------
+
+	Sum of Value = SUM( Table1[Value] )
+	
+	-----------------------------------------------------	
+
+	Filter on Red as Column = 
+		CALCULATE(
+                SUM('Fact Sale'[Quantity]),
+                'Dimension Stock Item'[Color]="Red"
+                 )
+	
+	-----------------------------------------------------
+
+	Filter on Red as Measure = 
+		CALCULATE(
+                SUM('Fact Sale'[Quantity]),
+                'Dimension Stock Item'[Color] = "Red"
+                )
+
+	-----------------------------------------------------
+3.5
+	SELECT
+	   SUM ( F.[Quantity] ) AS [Filter on Red as Measure]
+	FROM FACT.Sale AS F
+	   
+		LEFT OUTER JOIN Dimension.[Stock Item] AS D
+			ON F.[Stock Item Key]=D.[Stock Item Key]
+	WHERE
+		   D.[Color] = 'Red';
+	
+	-----------------------------------------------------	
+	
+	Hardcoded Calculated Column = 1
+	
+	-----------------------------------------------------	
+	
+	Hardcoded Calculated Measure = 1
+	
+	-----------------------------------------------------
+
+	Estimated Weight =
+        'Fact Sale'[Quantity] *
+                    RELATED(
+                        'Dimension Stock Item'[Typical Weight Per Unit]
+                        )
+	
+	-----------------------------------------------------
+
+	SELECT TOP 1
+		S.[Quantity] * D.[Typical Weight Per Unit] AS [Estimated Weight] 
+	FROM FACT.Sale AS S
+		LEFT OUTER JOIN Dimension.[Stock Item] AS D
+             ON D.[Stock Item Key] = S.[Stock Item Key]
+	
+	-----------------------------------------------------
+
+	2015 Population = SUM('Population by Age'[2015 Population])	
+	
+	-----------------------------------------------------	
+
+	Estimated Weight =
+      'Fact Sale'[Quantity] *
+                    RELATED(
+                        'Dimension Stock Item'[Typical Weight Per Unit]
+                        )
+	
+	-----------------------------------------------------	
+	
+	New Quantity Column 1 = SUM ( 'Fact Sale'[Quantity] )
+	
+	-----------------------------------------------------	
+	
+	New Quantity Column 2 = CALCULATE( SUM( 'Fact Sale'[Quantity] ) )
+	
+	-----------------------------------------------------	
+CHAPTER 4	
+4.1
+	SELECT
+		[Date].[Calendar Month Label],
+		[City].[State Province],
+		SUM(Sale.Quantity) AS [Sum of Qty]
+	FROM [Fact].[Sale] AS [Sale]
+
+		INNER JOIN [Dimension].[Date] AS [Date]
+			ON [Date].[Date] = Sale.[Delivery Date Key]
+	
+		INNER JOIN [Dimension].[City] AS [City]
+			ON [City].[City Key] = Sale.[City Key]
+	
+	GROUP BY
+		  [Date].[Calendar Month Label],
+		  [City].[State Province]
+	
+	-----------------------------------------------------	
+4.2
+	Summary Table using SUMMARIZE =
+		SUMMARIZE(
+			-- Table to Summarize --
+			'Fact Sale',
+			-- Columns to Group by --
+			'Dimension Date'[Calendar Month Label],
+			'Dimension City'[State Province],
+			-- Aggregation Columns --
+			"Sum of Qty",SUM('Fact Sale'[Quantity])
+			)
+	
+	-----------------------------------------------------	
+
+	Table of Missing Data =
+		FILTER(
+			'Fact Sale',
+			ISBLANK(
+				RELATED('Dimension Date'[Date])
+               )
+           )
+	
+	-----------------------------------------------------
+4.3
+	Summary Table using SUMMARIZE =
+		CALCULATETABLE(
+			SUMMARIZE(
+				-- Table to Summarize
+				'Fact Sale',
+				-- Columns to Group by
+				'Dimension Date'[Calendar Month Label],
+				'Dimension City'[State Province],
+				-- Aggregation Columns
+				"Sum of Qty",SUM('Fact Sale'[Quantity])
+				),
+			USERELATIONSHIP(
+				'Fact Sale'[Invoice Date Key],
+				'Dimension Date'[Date])
+			)
+	
+	-----------------------------------------------------	
+4.4
+	Summary Table using SUMMARIZE (Southwest) =
+		SUMMARIZE(
+			-- Table to Summarize
+			 FILTER('Fact Sale',RELATED('Dimension City'[Sales Territory]) = "Southwest"),
+			-- Columns to Group by
+			'Dimension Date'[Calendar Month Label],
+			'Dimension City'[State Province],
+			-- Aggregation Columns
+			"Sum of Qty",SUM('Fact Sale'[Quantity]),
+			"Average Qty", DIVIDE(
+								SUM('Fact Sale'[Quantity]),
+								COUNTROWS('Fact Sale')
+								)
+			)
+	
+	-----------------------------------------------------	
+4.5
+	Summary Table using SUMMARIZE (Southwest) =
+		CALCULATETABLE(
+			SUMMARIZE(
+				-- Table to Summarize
+				'Fact Sale',
+				-- Columns to Group by --
+				'Dimension Date'[Calendar Month Label],
+				'Dimension City'[State Province],
+				-- Aggregation Columns --
+				"Sum of Qty",SUM('Fact Sale'[Quantity]),
+				"Average Qty", DIVIDE(
+									SUM('Fact Sale'[Quantity]),
+									COUNTROWS('Fact Sale')
+									)
+				),     
+				'Dimension City'[Sales Territory] = "Southwest"
+		 )
+	
+	-----------------------------------------------------
+4.6
+	Summary Table using SUMMARIZECOLUMNS =
+		SUMMARIZECOLUMNS(
+			-- Columns to Group by
+			'Dimension Date'[Calendar Month Label],
+			'Dimension City'[State Province],
+			-- Aggregation Columns
+			"Sum of Qty",SUM('Fact Sale'[Quantity])
+			)
+		
+	----------------------------------------------------
+4.7
+	Summary Table using SUMMARIZECOLUMNS (Southwest) =
+		SUMMARIZECOLUMNS(
+			-- Columns to Group by --
+			'Dimension Date'[Calendar Month Label],
+			'Dimension City'[State Province],
+		  -- Filter condition --
+		  FILTER(
+				ALL(
+					'Dimension City'[Sales Territory]),
+					'Dimension City'[Sales Territory] = "Southwest"
+					),
+			-- Aggregation Columns
+			"Sum of Qty",SUM('Fact Sale'[Quantity])
+			)
+	
+	-----------------------------------------------------	
+4.8
+	Summary Table using GROUPBY =
+		GROUPBY(
+			-- Table to Group --
+			'Fact Sale',
+			-- Columns to Group By --
+			'Dimension Date'[Calendar Month Label],
+			'Dimension City'[State Province],
+			-- Aggregation columns --
+			"Sum of Qty",SUMX( CURRENTGROUP(),'Fact Sale'[Quantity] )
+			)
+	
+	-----------------------------------------------------	
+4.9
+	Summary Table using GROUPBY =
+		GROUPBY(
+			-- Table to Group --
+			'Fact Sale',
+			-- Columns to Group By --
+			'Dimension Date'[Calendar Month Label],
+			'Dimension City'[State Province],
+			-- Aggregation columns --
+			"Sum of Total Price",SUMX(
+							 CURRENTGROUP(),
+							 'Fact Sale'[Quantity] * 'Fact Sale'[Unit Price])
+							 )
+	
+	-----------------------------------------------------
+4.10
+	Summary Table using SUMMARIZECOLUMNS and SUMX =
+		SUMMARIZECOLUMNS(
+			-- Columns to Group By --
+			'Dimension Date'[Calendar Month Label],
+			'Dimension City'[State Province],
+			-- Aggregation columns --
+			"Sum of Total Price",SUMX(
+									'Fact Sale',
+									 'Fact Sale'[Quantity] * 'Fact Sale'[Unit Price]
+									 )
+						)
+	
+	-----------------------------------------------------	
+
+	SUMX(
+		CURRENTGROUP(),
+		 'Fact Sale'[Quantity] * 'Fact Sale'[Unit Price] * RELATED('Dimension City'[Weighting])
+		)
+	
+	-----------------------------------------------------	
+4.11
+	Table =
+		GROUPBY (
+				GROUPBY (
+					'table1',
+					Table1[Category],
+					"My Max", MAXX ( CURRENTGROUP (), 'Table1'[Value] )
+				)         "Sum of Max values", SUMX ( CURRENTGROUP (), [My Max] )
+			)
+	
+	-----------------------------------------------------
+4.12
+	Table =
+		VAR myInnerGroup =
+			SUMMARIZECOLUMNS (
+				Table1[Category],
+				"My Max",
+				MAX ('table1'[Value])
+				)
+		RETURN
+			GROUPBY(
+				myInnerGroup,
+				"Sum of max values",
+				SUMX (
+					CURRENTGROUP (), [My Max]
+					)
+				)
+	
+	-----------------------------------------------------	
+4.13
+	GROUPBY(
+		-- Table to Group --
+		 FILTER('Fact Sale',RELATED('Dimension City'[Sales Territory])="Southwest"),
+		-- Columns to Group By --
+		'Dimension Date'[Calendar Month Label],
+		'Dimension City'[State Province],
+		-- Aggregation columns --
+		"Sum of Qty",SUMX(CURRENTGROUP(),'Fact Sale'[Quantity])
+		)
+
+	-----------------------------------------------------
+4.14
+	CALCULATETABLE(
+		GROUPBY(
+			-- Table to Group --
+				'Fact Sale',
+				-- Columns to Group By --
+				'Dimension Date'[Calendar Month Label],
+				'Dimension City'[State Province],
+				-- Aggregation columns --
+				"Sum of Qty",SUMX(CURRENTGROUP(),'Fact Sale'[Quantity])
+				),     FILTER('Dimension City',[Sales Territory]="Southwest")
+			)
+	
+	-----------------------------------------------------	
+
+	SUMMARIZE (
+		table1,
+		ROLLUP ('table1'[Category]),
+		"Sum of Value", SUM ( 'table1'[Value] )
+		)
+
+	-----------------------------------------------------
+4.15
+	SUMMARIZE (     
+		table1,
+		ROLLUP ( 'table1'[Category]),
+		"Sum of Value", SUM ( 'table1'[Value] ),
+		"Max of Value", MAX ( 'table1'[Value] ),
+		"Average of Value", FIXED ( AVERAGE ( 'table1'[Value] ), 1 )
+		 )
+	
+	-----------------------------------------------------	
+
+	SUMMARIZE (
+		table1,
+		ROLLUP ( 'table1'[Category]),
+		"Sum of Value", SUM ( 'table1'[Value] ),
+		"Is Category Subtotal", ISSUBTOTAL('table1'[Category])
+		)
+	
+	-----------------------------------------------------	
+4.16
+	SUMMARIZE (
+		table1,
+		ROLLUP ( 'table1'[Category], 'table1'[Sub Category] ),
+		"Sum of Value", SUM ( 'table1'[Value] ),
+		-----------
+		"Is Cat SubTotal", ISSUBTOTAL('table1'[Category]),
+		"Is Sub Cat SubTotal", ISSUBTOTAL('table1'[Sub Category])
+		)
+	
+	-----------------------------------------------------	
+4.17
+	SUMMARIZECOLUMNS (
+		ROLLUPADDISSUBTOTAL (
+			Table1[Category], "Is Cat Sub Total",
+			Table1[Sub Category], "Is Sub Cat SubTotal"
+			),
+		"Sum of Value", SUM ( Table1[Value] )
+		)
+	
+	-----------------------------------------------------
+CHAPTER 5
+
+	SELECT
+		  *
+	FROM TableA
+		  CROSS JOIN TableB
+	
+	-----------------------------------------------------	
+
+	SELECT * FROM TableA, TableB
+	
+	-----------------------------------------------------
+
+	My Count of Rows =
+      COUNTROWS(
+             GENERATE('TableA','TableB')
+             )
+	
+	-----------------------------------------------------	
+5.1
+	My Count of Rows =
+		COUNTROWS(
+			GENERATE(
+				'TableA',
+				FILTER(
+					'TableB',
+					'TableA'[Make] = 'TableB'[Make]
+				)
+			)
+		)
+
+	-----------------------------------------------------	
+5.2
+	My Count of Rows =
+		COUNTROWS(
+            GENERATE(
+                'TableA',
+                FILTER(
+					'TableB',
+					'TableA'[Make] = 'TableB'[Make] &&
+					'TableA'[Model] = 'TableB'[Model] &&
+					'TableB'[Year] < 2019
+					)
+                )
+            )
+
+	-----------------------------------------------------	
+
+	My Count of Rows =
+		CALCULATE(
+			COUNTROWS('TableA'),
+			'TableB'[Year] < 2019
+			)
+
+	-----------------------------------------------------
+5.3
+	My Table =
+		GENERATE(
+				'TableA',
+				SELECTCOLUMNS(
+					'TableB',
+					"My Make", [Make],
+					"My Model", [Model],
+					"Year", [Year],
+					"Index", [Index]
+					)
+				)
+		
+	-----------------------------------------------------
+5.4
+	My Table =
+		GENERATE(
+			'TableA',
+			SELECTCOLUMNS(
+				'TableB',
+				"Year", [Year],
+				"Index", [Index]
+				)
+			)
+	
+	-----------------------------------------------------
+5.5
+	My Table =
+		FILTER(
+			GENERATE(
+					'TableA',
+					SELECTCOLUMNS(
+						'TableB',
+						"My Make", [Make],
+						"My Model", [Model],
+						"Year", [Year],
+						"Index", [Index]
+					)
+				 ),
+				 [Make] = [My Make] &&
+				 [Model] = [My Model] &&
+				 [Year] < 2019
+				 )
+	
+	-----------------------------------------------------
+5.6
+	SELECT
+		A.[ID],
+		A.[Make],
+		A.[Model],
+		A.[Value],
+		B.[Make] AS [My Make],
+		B.[Model] AS [My Model],
+		B.[Year],
+		B.[Index] 
+	FROM TableA AS A
+		INNER JOIN TableB AS B
+			ON  A.Make = B.Make
+			AND A.Model = B.Model
+			AND B.Year < 2019
+
+	-----------------------------------------------------
+5.7
+	My Table =
+	VAR ModifiedTableB =
+		SELECTCOLUMNS(
+			'TableB',
+			"My Make", [Make],
+			"My Model", [Model],
+			"Year", [Year],
+			"Index", [Index]
+			)
+	VAR FilteredGENERATE =
+		FILTER(
+			GENERATE( 'TableA', ModifiedTableB ),
+			[Make] = [My Make] &&
+			[Model] = [My Model] &&
+			[Year] < 2019
+			)
+	RETURN
+		  SELECTCOLUMNS(
+					   FilteredGENERATE,
+					   "ID",[ID],
+					   "Make",[Make],
+					   "Model",[Model],
+					   "Year",[Year],
+					   "Index",[Index]
+					   )
+		
+	-----------------------------------------------------
+5.8
+	Table for Visual =
+		SELECTCOLUMNS(
+				FILTER(
+					GENERATE(
+						'Occupancies',
+						CALENDAR("2019-01-01","2019-01-05")
+						),
+					[Date] >= [Check In] &&
+					[Date] < [Check out]
+				),
+				"ID", [ID],
+				"Room", [Room],
+				"Date", [Date]
+			)
+	
+	-----------------------------------------------------
+5.9
+	SELECT
+		Occupancy.[ID],
+		Occupancy.[Room],
+		Dates.[Date]
+	FROM Occupancy AS O    
+		INNER JOIN Dates AS D
+			ON  D.[Date] >= O.[Check In]
+			AND D.[Date] < O.[Check Out]
+	
+	-----------------------------------------------------
+
+	GENERATE(
+		'Occupancies',
+		CALENDAR("2019-01-01","2019-01-05")
+		),
+	
+	-----------------------------------------------------	
+5.10
+	FILTER(
+		GENERATE(
+			'Occupancies',
+			CALENDAR("2019-01-01","2019-01-05")
+			),
+		[Date] >= [Check In] &&
+		[Date] < [Check out]
+		),
+	
+	-----------------------------------------------------
+5.11
+	New Table =
+		ADDCOLUMNS(
+			FILTER(
+				GENERATE(
+					'Table1',
+					GENERATESERIES(1,3)
+					)
+					,[Factor] <= [Value]
+				),
+				"New Col", [Factor] * [Value]
+		)
+	
+	-----------------------------------------------------	
+
+	GENERATE(
+		'Table1',
+		SELECTCOLUMNS(
+			CALENDAR(1,3),
+			"Value",INT([Date])
+			)
+		)
+	
+	-----------------------------------------------------	
+5.12
+	New Table =
+	VAR SelfJoin =
+		FILTER(
+			GENERATE(
+					'Sales',
+					SELECTCOLUMNS(
+						'Sales',
+						"xCustomer",[Customer],
+						"xPurchase Date",[Purchase Date]
+					)
+				),
+				[xPurchase Date] < [Purchase Date] &&
+				[Customer] = [xCustomer]
+				)
+	VAR LastPurchases =
+		GROUPBY(
+				SelfJoin,
+				Sales[Customer],
+				Sales[Purchase Date],
+				"Last Purchase",MAXX(
+									CURRENTGROUP(),
+									[xPurchase Date]
+									)
+				)
+	RETURN
+		ADDCOLUMNS(
+			NATURALLEFTOUTERJOIN('Sales',  LastPurchases),
+			"Days since last purchase",
+			VAR DaysSince = INT([Purchase Date] - [Last Purchase])
+			RETURN 
+				IF (
+					NOT ISBLANK([Last Purchase]),
+					DaysSince
+					)
+			   )
+	
+	-----------------------------------------------------	
+5.13
+	SELECT
+		L.Customer,
+		L.[Purchase Date],
+		R.Customer AS [xCustomer],
+		R.[Purchase Date] AS [xPurchase Date] INTO #SelfJoin
+	FROM Sales AS L
+		INNER JOIN Sales AS R
+			ON  R.Customer = L.Customer
+			AND R.[Purchase Date] < L.[Purchase Date]
+	
+	-----------------------------------------------------
+5.14
+	SELECT
+		[Customer],
+		[Purchase Date],
+		MAX([xPurchase Date]) AS [Last Purchase]
+	INTO #LastPurchases
+	FROM #SelfJoin
+	GROUP BY
+		[Customer],
+		[Purchase Date]
+	
+	-----------------------------------------------------
+5.15
+	RETURN
+		ADDCOLUMNS( 
+			NATURALLEFTOUTERJOIN('Sales',  LastPurchases),
+			"Days since last purchase",
+				VAR DaysSince = INT([Purchase Date] - [Last Purchase])
+				RETURN IF (
+						NOT ISBLANK([Last Purchase]),
+						DaysSince
+					)
+			   )
+		
+	-----------------------------------------------------
+5.16
+	SELECT
+		L.Customer,
+		L.[Purchase Date],
+		R.[Last Purchase],
+		DATEDIFF(DAY,R.[Last Purchase],L.[Purchase Date]) AS [Days since last purchase]
+	FROM #Sales AS L
+		LEFT OUTER JOIN #LastPurchases AS R
+			ON  L.Customer = R.Customer
+			AND L.[Purchase Date] = R.[Purchase Date]
+	
+	-----------------------------------------------------
+5.17
+	New Table =
+		ADDCOLUMNS(
+			ADDCOLUMNS(
+				'Sales',
+				"Last Purchase", MAXX(
+									FILTER(
+										'Sales',
+										[Customer] = EARLIER([Customer]) &&
+										[Purchase Date] < EARLIER([Purchase Date])
+										),
+									[Purchase Date]
+									)
+						),
+			"Days since last purchase", 
+				IF(
+					NOT ISBLANK([Last Purchase]),
+					 DATEDIFF([Last Purchase], [Purchase Date],DAY)
+				)
+			)
+
+	-----------------------------------------------------	
+	
+	New Table = NATURALINNERJOIN('Fact Sale','Dimension City')
+	
+	-----------------------------------------------------	
+5.18
+	New Table =
+	VAR LeftTable  =
+		  SELECTCOLUMNS(
+					'Table1',
+					"ID",[ID] & "",
+					"Value1",[Value1]
+					)
+	VAR RightTable =
+		  SELECTCOLUMNS(
+					'Table2',
+					"ID",[ID] & "",
+					"Value2",[Value2]
+					)
+	RETURN
+		  NATURALINNERJOIN(
+					   LeftTable,
+					   RightTable
+					   )
+	
+	-----------------------------------------------------
+
+	Table =
+		DISTINCT(
+            UNION('Table1',Table2)
+            )
+	
+	-----------------------------------------------------	
+5.19
+	New Column =
+		LOOKUPVALUE(
+			-- Value to be returned for this new column --
+			'Dimension City'[Continent],
+			-- Column to search --
+			'Dimension City'[City Key],
+			-- Value in column to search --
+			'Fact Sale'[City Key]
+			)
+
+	-----------------------------------------------------	
+CHAPTER 6	
+	Count of Sales = COUNTROWS(
+						   FILTER('Fact Sale',
+									'Fact Sale'[Invoice Date Key]=DATE(2013,1,1)
+								 )
+						   )
+
+	-----------------------------------------------------	
+6.1
+	Count of Sales (10 or more) =
+		COUNTROWS(
+			FILTER(
+				'Fact Sale',
+				'Fact Sale'[Quantity] > 10
+				)
+			)
+
+	-----------------------------------------------------
+6.2
+	Count of Sales (10 or more) =
+		COUNTROWS(
+			FILTER(
+				'Fact Sale',
+				'Fact Sale'[Quantity] >= 10
+				&& RELATED('Dimension Stock Item'[Size]) = "M"                                 
+				)
+			)
+	
+	-----------------------------------------------------
+
+	Count of all Sales = 
+		CALCULATE(
+			 COUNTROWS('Fact Sale'),
+			 ALL('Fact Sale')
+			 )
+	
+	-----------------------------------------------------
+
+	Count of Sales % = 
+		DIVIDE(
+			[Count of Sales],
+			[Count of all Sales]
+			)
+	
+	-----------------------------------------------------
+6.3
+	Count of all (Dim Date) Sales =
+		CALCULATE(
+			COUNTROWS('Fact Sale'),
+			ALL('Dimension Date')
+			)
+
+	-----------------------------------------------------
+6.4
+	Count of all (Fact Sales) Sales =
+		CALCULATE(
+			COUNTROWS('Fact Sale'),
+			ALL('Fact Sale')
+			)
+
+	-----------------------------------------------------
+6.5
+	Count of Sales (10 or more) =
+		COUNTROWS(
+			FILTER(
+				'Fact Sale',
+				'Fact Sale'[Quantity] >= 10
+				)
+			)
+	
+	-----------------------------------------------------
+6.6
+	Count of all (Explicit) Sales =
+		CALCULATE(
+		[Count of Sales (10 or more)],
+		ALL('Fact Sale')
+		)
+	
+	-----------------------------------------------------	
+
+	Count of all (Explicit) Sales =
+		CALCULATE(
+			[Count of Sales (10 or more)],
+			ALL('Dimension Date'[Calendar Year])
+			)
+
+	-----------------------------------------------------	
+6.7
+	ALL Measure =
+		CALCULATE(
+			SUM('Table1'[ColumnE]),
+			ALL(
+				Table1[ColumnA],
+				Table1[ColumnB],
+				Table1[ColumnC]
+				)
+		)
+
+	-----------------------------------------------------
+6.8
+	ALLEXEPT Measure =
+		CALCULATE(
+			SUM('Table1'[ColumnE]),
+			ALLEXCEPT(
+				Table1,
+				Table1[ColumnD]
+				)
+		)
+	
+	-----------------------------------------------------	
+6.9
+	ColumnD Ratio =
+		DIVIDE(
+			SUM('Table1'[ColumnE]),
+			[ALL Measure],
+            0
+            )
+	
+	-----------------------------------------------------
+6.10
+	Sum of Quantity = SUM('Fact Sale'[Quantity])	
+	
+	-----------------------------------------------------	
+6.11	
+	ALL Quantity =
+		CALCULATE(
+			SUM('Fact Sale'[Quantity]),
+			ALL('Fact Sale')
+			)
+	
+	-----------------------------------------------------
+6.12
+	ALLSELECTED Quantity =
+		CALCULATE(
+			SUM('Fact Sale'[Quantity]),
+			ALLSELECTED('Fact Sale')
+			)
+	
+	-----------------------------------------------------
+6.13
+	Sum of Quantity = SUM('Fact Sale'[Quantity])
+	
+	-----------------------------------------------------	
+6.14
+	Running Total =
+		CALCULATE(
+			SUM('Fact Sale'[Quantity]),
+			FILTER(
+				ALL('Dimension Date'[Calendar Year]),
+				MAX('Dimension Date'[Calendar Year]) >= 'Dimension Date'[Calendar Year]
+				)
+            )    
+
+	-----------------------------------------------------
+6.15
+	Sum of Quantity = SUM('Fact Sale'[Quantity])	
+	
+	-----------------------------------------------------	
+6.16
+	Running Total ALL =
+		CALCULATE(
+			SUM('Fact Sale'[Quantity]),
+			FILTER(
+				ALL('Dimension Date'[Calendar Year]),
+				MAX('Dimension Date'[Calendar Year]) >= 'Dimension Date'[Calendar Year]
+				)
+            )   
+	
+	-----------------------------------------------------
+6.17
+	Running Total ALLSELECTED =
+		CALCULATE(
+			SUM('Fact Sale'[Quantity]),
+			FILTER(
+				ALLSELECTED('Dimension Date'[Calendar Year]),
+				MAX('Dimension Date'[Calendar Year]) >= 'Dimension Date'[Calendar Year]
+				)
+			)   
+		
+	-----------------------------------------------------
+
+	Calendar Month = STARTOFMONTH('Dimension Date'[Date])	
+	
+	-----------------------------------------------------	
+6.18
+	Running Total ALL =
+		CALCULATE(
+			SUM('Fact Sale'[Quantity]),
+			FILTER(
+				ALL(
+					'Dimension Date'[Calendar Month],
+					'Dimension Date'[Calendar Year]
+					),
+				MAX('Dimension Date'[Calendar Month]) >= 'Dimension Date'[Calendar Month] &&
+				MAX('Dimension Date'[Calendar Year]) = 'Dimension Date'[Calendar Year]
+				)
+			)   
+	
+	-----------------------------------------------------	
+
+	Running Total YTD =
+		TOTALYTD(
+            [Sum of Quantity],
+            'Dimension Date'[Date]
+            )
+	
+	-----------------------------------------------------
+6.19
+	Customer Rank Column =
+		RANKX(
+			'Dimension Customer',
+			CALCULATE(
+				SUM('Fact Sale'[Total Excluding Tax])
+				)
+			)
+	
+	-----------------------------------------------------
+6.20
+	WITH Ranking (
+		[Customer Key],
+		[Total Excluding Tax]
+		)
+	AS(
+		SELECT
+             D.[Customer Key],
+			 SUM(F.[Total Excluding Tax]) AS [Total Excluding Tax]
+		FROM Dimension.Customer AS D
+             INNER JOIN Fact.Sale AS F
+                   ON F.[Customer Key] = D.[Customer Key]
+		GROUP BY
+             D.[Customer Key]
+        )
+	SELECT
+		L.[Customer Key], 
+		COUNT(*) AS [Final Ranking]
+	FROM Ranking AS L
+		INNER JOIN Ranking AS R
+			ON L.[Total Excluding Tax] <= R.[Total Excluding Tax]
+	GROUP BY
+		L.[Customer Key]       
+	ORDER BY
+		COUNT(*)
+	
+	-----------------------------------------------------	
+6.21
+	Using Filter =
+		CALCULATE(
+			[Sum of Quantity],
+			FILTER(
+				ALL('Dimension Date'[Calendar Month]),
+				MAX('Dimension Date'[Calendar Month]) = EDATE('Dimension Date'[Calendar Month],1)
+				)
+			)
+	
+	-----------------------------------------------------	
+6.22
+	Using Parallel Period =
+		CALCULATE(
+			[Sum of Quantity],
+			PARALLELPERIOD('Dimension Date'[Date],-1,MONTH)
+			)
+
+	-----------------------------------------------------
+6.23
+	Using Date Add =
+		CALCULATE(
+			[Sum of Quantity],
+			DATEADD('Dimension Date'[Date],-1,MONTH)
+			)
+	
+	-----------------------------------------------------	
+6.24
+	Using Previous Month =
+		CALCULATE(
+			[Sum of Quantity],
+			PREVIOUSMONTH('Dimension Date'[Date])
+			)
+	
+	-----------------------------------------------------	
+6.25
+	Last Purchase Date =  
+		CALCULATE(
+			LASTDATE(' Fact Sale'[Invoice Date Key]),
+			FILTER(
+				'Fact Sale',
+				'Fact Sale'[Customer Key] = EARLIER('Fact Sale'[Customer Key]) && 
+				'Fact Sale'[Invoice Date Key] < EARLIER('Fact Sale'[Invoice Date Key])
+				)
+			)
+	
+	-----------------------------------------------------	
+6.26
+	SELECT
+		[Current].[Sale Key],
+		[Current].[Customer Key],
+		[Current].[Invoice Date Key],
+		MAX([EARLIER].[Invoice Date Key]) AS [Last Purchase Date]
+	FROM Fact.Sale AS [Current]
+		LEFT JOIN FACT.Sale AS [EARLIER]
+			ON  [Earlier].[Customer Key] = [Current].[Customer Key]
+			AND [Earlier].[Invoice Date Key] < [Current].[Invoice Date Key]
+	WHERE
+		[Current].[Customer Key] = 10
+	GROUP BY
+		[Current].[Sale Key],
+		[Current].[Customer Key],
+		[Current].[Invoice Date Key]
+	
+	-----------------------------------------------------	
+6.27
+	Last Purchase Date =
+	VAR CustomerKey = 'Fact Sale'[Customer Key]
+	VAR InvoiceDateKey = 'Fact Sale'[Invoice Date Key]
+	RETURN
+		CALCULATE(
+			LASTDATE('Fact Sale'[Invoice Date Key]),
+			FILTER(
+				'Fact Sale',
+				'Fact Sale'[Customer Key] = CustomerKey
+				&& 'Fact Sale'[Invoice Date Key] < InvoiceDateKey
+			)
+		)
+	
+	-----------------------------------------------------	
+6.28
+	Top 10 Customers =
+		FILTER(
+			'Dimension Customer',
+			'Dimension Customer'[Customer Rank] <= 10
+			)
+	
+	-----------------------------------------------------	
+CHAPTER 7
+7.1
+	Count of Invoice Rows = COUNTROWS('Fact Sale')
+	
+	-----------------------------------------------------	
+7.2
+	Count of Delivery Rows =
+		CALCULATE(
+			COUNTROWS('Fact Sale'),
+			USERELATIONSHIP(
+					'Dimension Date'[Date],
+					'Fact Sale'[Delivery Date Key]
+					)
+			)
+
+	-----------------------------------------------------	
+	
+	TOTALYTD(
+        SUM('Table1'[Quantity]),
+		'Table1'[My Date Col].[Date]
+        )
+
+	-----------------------------------------------------	
+7.3
+	My Year to Date (Date Table) =
+		TOTALYTD (
+			SUM('Fact Sale'[Quantity]),
+			'Dimension Date'[Date]
+			)
+	
+	-----------------------------------------------------
+
+	My Year to Date (Date Table) =
+		TOTALYTD (
+			SUM('Fact Sale'[Quantity]),
+			'Dimension Date'[Date],
+			"6/30"
+			)
+
+	-----------------------------------------------------
+7.4
+	QTY for Previous Month =
+		CALCULATE(
+			[Sum of Quantity],
+			PREVIOUSMONTH('Dimension Date'[Date])
+			)
+	
+	-----------------------------------------------------
+7.5
+	QTY % Diff to Prev Month =
+		DIVIDE(
+			[Sum of Quantity] - [QTY for Previous Month],
+			[QTY for Previous Month]
+			)
+
+	-----------------------------------------------------
+7.6
+	VAR PrevMonth =
+		CALCULATE(
+			[Sum of Quantity],
+			PREVIOUSMONTH('Dimension Date'[Date])
+			)
+	RETURN
+		DIVIDE(
+			[Sum of Quantity] - PrevMonth,
+			PrevMonth
+			)
+	
+	-----------------------------------------------------	
+7.7
+	QTY (Month -3) =
+		CALCULATE(
+			SUM('Fact Sale'[Quantity]),
+			PARALLELPERIOD(
+				'Dimension Date'[Date],
+				-3,
+				MONTH
+				)
+			)
+	
+	-----------------------------------------------------
+7.8
+	QTY (Month -3) =
+		CALCULATE(
+			SUM('Fact Sale'[Quantity]),
+			DATEADD(
+				'Dimension Date'[Date],
+				-3,
+				MONTH
+				)
+			)
+	
+	-----------------------------------------------------
+7.9
+	Avg Qty Last 7 Days (Date Table) =
+	VAR DateFilter =
+		DATESINPERIOD(
+			'Dimension Date'[Date],
+			MAX('Dimension Date'[Date]),
+			-7,
+			DAY
+			)
+	VAR RollingSUM =
+		CALCULATE(
+			[Sum of Quantity],
+			DateFilter
+			)
+	RETURN
+		DIVIDE( RollingSUM, COUNTROWS( DateFilter) )
+	
+	-----------------------------------------------------
+7.10
+	RETURN
+		DIVIDE(
+			RollingSUM,
+			COUNTROWS(
+				FILTER(
+				DateFilter,
+                [Sum of Quantity]>0)
+				)
+		   )
+	
+	-----------------------------------------------------	
+7.11
+	Avg Qty Last 7 Days (Date Table) =
+	VAR DateFilter =
+		DATESINPERIOD(
+			'Dimension Date'[Date],
+			MAX('Dimension Date'[Date]),
+			-7,
+			DAY
+			)
+	RETURN
+		AVERAGEX(
+			DateFilter,
+			[Sum of Quantity]
+			)
+	
+	-----------------------------------------------------
+7.12
+	Avg Qty Last 7 Days (Date Table) =
+	VAR DateFilter =
+		DATESBETWEEN(
+			'Dimension Date'[Date],
+			LASTDATE('Dimension Date'[Date])-6,
+			LASTDATE('Dimension Date'[Date])
+			)
+	RETURN
+		AVERAGEX(
+			DateFilter,
+			[Sum of Quantity]
+			)
+		
+	-----------------------------------------------------	
+	
+	Dates = CALENDAR("2016-01-01", "2019-12-31" ) 
+	
+	-----------------------------------------------------	
+	
+	Dates = CALENDAR(DATE(2016,1,1), TODAY())
+	
+	-----------------------------------------------------	
+	
+	Dates = CALENDAR(
+            FIRSTDATE('Fact Sale'[Invoice Date Key]),
+            LASTDATE('Fact Sale'[Invoice Date Key])
+            )
+	
+	-----------------------------------------------------	
+	
+	Dates = CALENDAR(
+            STARTOFYEAR( 'Fact Sale'[Invoice Date Key] ),
+            ENDOFYEAR( 'Fact Sale'[Invoice Date Key] )
+            )
+	
+	-----------------------------------------------------	
+7.13
+	Dates =
+	VAR BaseTable = CALENDAR("2016-01-01",TODAY())
+	RETURN
+		ADDCOLUMNS(
+			BaseTable,
+			"MonthID", FORMAT([Date],"YYYYMM"),
+			"Calendar Month", FORMAT([Date],"MMMM YY")
+			)
+
+	-----------------------------------------------------	
+7.14
+	RETURN
+		ADDCOLUMNS(
+			BaseTable,
+			"Month", DATE(
+						YEAR([Date]),
+						MONTH([Date]),
+						1
+						),
+			"Calendar Month", FORMAT([Date],"MMMM YY")
+			)
+	
+	-----------------------------------------------------	
+7.15
+	RETURN
+		ADDCOLUMNS(
+			BaseTable,
+			"Month", DATE(
+						YEAR([Date]),
+						MONTH([Date]),
+						1
+						),
+			"Calendar Month", FORMAT([Date],"MMMM YY"),
+			"Year", FORMAT( [Date], "YYYY" )
+        )
+
+	-----------------------------------------------------
+7.16
+	"Fiscal Year",
+	VAR FY_Month_Starts = 6
+	RETURN 
+		YEAR([Date]) - IF(
+						MONTH([Date]) < FY_Month_Starts,
+						-- Then Add a 1 to the year --
+						1,
+						-- Else leave as is  --
+						0  
+						)
+	
+	-----------------------------------------------------	
+7.17
+	"Fiscal Month No",
+	VAR FY_Month_Starts = 6
+	RETURN MOD(
+				MONTH([Date]) - FY_Month_Starts,
+				12
+			)+1
+	
+	-----------------------------------------------------	
+
+    "Days from Today",INT( [Date] - TODAY())
+	   
+	-----------------------------------------------------	
+	
+	"Week Starting Sunday", [Date] -  ( WEEKDAY( [Date] ) -1 )
+	
+	-----------------------------------------------------	
+	
+	"Week Starting Monday", [Date] -  WEEKDAY( [Date], 3 )
+	
+	-----------------------------------------------------	
+7.18
+	"Week Starting Wednesday",
+	VAR myWeekDay = WEEKDAY( [Date], 3 )
+	VAR offset = 2 
+			/* 0=Mon, 1=Tues, 2=Wed, 3=Thur, 4=Fri 5=Sat, 6=Sun */
+	RETURN [Date] – MOD( myWeekDay – offset, 7 )
+	
+	-----------------------------------------------------
+
+	"Weeks from today",
+		DIVIDE(
+				INT(
+					([Date] -  WEEKDAY([Date],3)) - TODAY()
+					),
+				7
+				)
+	
+	-----------------------------------------------------	
+7.19
+	"Is Work Day",
+		IF(  -- Zero based index with Monday being 0 is less than 5
+			WEEKDAY( [Date], 3 ) < 5,
+			-- THEN --
+			1,
+			-- ELSE --
+			0
+		)
+
+	-----------------------------------------------------	
+7.20
+	Working Days From Today =
+	VAR ColDate = 'Dates'[Date]
+	RETURN
+		IF( ColDate < TODAY(),
+			-- THEN --
+			0-CALCULATE(
+				SUM('Dates'[Is Working Day]),
+				ALL(Dates),
+				'Dates'[Date] >= ColDate &&  
+				'Dates'[Date] < TODAY()
+				),
+		   -- ELSE --
+			CALCULATE(
+				SUM('Dates'[Is Working Day]),
+				ALL(Dates),
+				'Dates'[Date] <= ColDate &&
+				'Dates'[Date] > TODAY()
+				)
+			)+0
+		
+	-----------------------------------------------------
+
+	"Weekday name", FORMAT([Date],"DDDD")	
+	
+	-----------------------------------------------------	
+CHAPTER 8	
+	Count of Table = COUNTROWS( 'Table' )
+	
+	-----------------------------------------------------
+8.1
+	Product Ratio of Daily Sales =
+	DIVIDE (
+		CALCULATE (
+			SUM('Fact Sale'[Total Amount]),
+			ALL('Fact Sale'),
+			'Fact Sale'[Invoice Date Key]=EARLIER('Fact Sale'[Invoice Date Key]),
+			'Fact Sale'[Stock Item Key]=EARLIER('Fact Sale'[Stock Item Key])
+			),
+		CALCULATE (
+			SUM('Fact Sale'[Total Amount]),
+			ALL('Fact Sale'),
+			'Fact Sale'[Invoice Date Key]=EARLIER('Fact Sale'[Invoice Date Key])
+			)
+		)
+	
+	-----------------------------------------------------
+8.2
+	Product Sub Total =
+		CALCULATE (
+            SUM('Fact Sale'[Total Amount]),
+            ALL('Fact Sale'),
+            'Fact Sale'[Invoice Date Key]=EARLIER('Fact Sale'[Invoice Date Key]),
+            'Fact Sale'[Stock Item Key]=EARLIER('Fact Sale'[Stock Item Key]) 
+			)
+	
+	-----------------------------------------------------	
+8.3
+	Daily Sub Total =
+        CALCULATE (
+            SUM('Fact Sale'[Total Amount]),
+            ALL('Fact Sale'),
+            'Fact Sale'[Invoice Date Key]=EARLIER('Fact Sale'[Invoice Date Key])             
+			)
+	
+	-----------------------------------------------------
+8.4
+	Divide Test =
+		DIVIDE(
+			'Fact Sale'[Product Sub Total],
+			'Fact Sale'[Daily Sub Total]
+			)
+	
+	-----------------------------------------------------	
+8.5
+	Product Ratio of Daily Sales =
+	VAR InvoiceDateKeyCol = 'Fact Sale'[Invoice Date Key]
+	VAR StockItemKeyCol = 'Fact Sale'[Stock Item Key]
+	VAR ProductSubTotal =
+		CALCULATE (
+			SUM('Fact Sale'[Total Amount]),
+			ALL('Fact Sale'),
+			'Fact Sale'[Invoice Date Key]=InvoiceDateKeyCol,
+			'Fact Sale'[Stock Item Key]=StockItemKeyCol
+			)
+	VAR DailySubTotal =
+		CALCULATE (
+			SUM('Fact Sale'[Total Amount]),
+			ALL('Fact Sale'),
+			'Fact Sale'[Invoice Date Key]=InvoiceDateKeyCol
+			)
+	VAR ReturnValue =
+		DIVIDE (
+			ProductSubTotal,
+			DailySubTotal
+			)
+	RETURN  ProductSubTotal
+	
+	-----------------------------------------------------	
+8.6
+	Product Ratio of Daily Sales as Measure =
+		DIVIDE (
+			CALCULATE (
+				SUM('Fact Sale'[Total Amount]),
+				FILTER(
+					ALLSELECTED('Fact Sale'),
+					'Fact Sale'[Invoice Date Key]=MAX('Fact Sale'[Invoice Date Key]) &&
+					'Fact Sale'[Stock Item Key]=MAX('Fact Sale'[Stock Item Key])
+					)
+				),    
+			CALCULATE (
+				SUM('Fact Sale'[Total Amount]),
+				FILTER(
+					ALLSELECTED('Fact Sale'),
+					'Fact Sale'[Invoice Date Key]=MAX('Fact Sale'[Invoice Date Key])
+					)
+				)
+			)
+	
+	-----------------------------------------------------
+8.7
+	Product Sub Total as Measure =
+        CALCULATE (
+			SUM('Fact Sale'[Total Amount]),
+			FILTER(
+                ALLSELECTED('Fact Sale'),
+				 'Fact Sale'[Invoice Date Key]=MAX('Fact Sale'[Invoice Date Key]) &&
+				'Fact Sale'[Stock Item Key]=MAX('Fact Sale'[Stock Item Key])
+				)
+			)
+	
+	-----------------------------------------------------
+8.8
+	Product Sub Total as Measure =
+        CALCULATE (
+			SUM('Fact Sale'[Total Amount]),
+			FILTER(
+                ALLSELECTED('Fact Sale'),
+				 'Fact Sale'[Invoice Date Key]=MAX('Fact Sale'[Invoice Date Key]) &&
+				'Fact Sale'[Stock Item Key]=MAX('Fact Sale'[Stock Item Key])
+				)
+			)
+	
+	-----------------------------------------------------	
+8.9
+	Product Ratio as Measure =
+		DIVIDE(
+			[Product Sub Total as Measure],
+			[Daily Sub Total as Measure]
+			)
+	
+	-----------------------------------------------------	
+	
+	EVALUATE
+		ROW(
+			"My Value",
+			COUNTROWS('Fact Sale')
+			)
+
+	-----------------------------------------------------
+
+	EVALUATE
+		FILTER(
+			'Dimension Date',
+			'Dimension Date'[Calendar Year]=2016
+			)
+	
+	-----------------------------------------------------	
+
+	EVALUATE
+		TOPN(
+			10,
+			'Dimension Date',
+			'Dimension Date'[Date],
+			DESC
+			)
+
+	-----------------------------------------------------	
+
+	EVALUATE
+		SELECTCOLUMNS(
+			'Fact Sale',
+			"My Test Column",
+			'Fact Sale'[Unit Price] * 'Fact Sale'[Quantity]
+			)
+	
+	-----------------------------------------------------
+8.10
+	EVALUATE
+		VAR DoubleMe = 2
+		RETURN
+			SELECTCOLUMNS(
+				'Fact Sale',
+				"My Test Column",
+				'Fact Sale'[Unit Price] * 'Fact Sale'[Quantity],
+				"My Test Column 2",
+					VAR X = COUNTROWS('Fact Sale') * DoubleMe
+					RETURN X
+				)
+	
+	-----------------------------------------------------	
+8.11
+	DEFINE MEASURE
+		'FACT Sale'[My test measure] = COUNTROWS('Fact Sale')
+	EVALUATE
+		SUMMARIZECOLUMNS(
+			'Dimension Date'[Calendar Year],
+			"Column Name here", [My test measure]
+			)
+    ORDER BY
+        'Dimension Date'[Calendar Year] DESC
+	
+	-----------------------------------------------------	
+
+	DEFINE MEASURE 
+		'Fact Sale'[Right Now] = FORMAT(NOW(),"hh:mm:ss.ms")
+	EVALUATE
+		ROW("Q1",[Right Now])
+	EVALUATE
+		ROW("Q3",[Right Now])
+	EVALUATE
+		SAMPLE(
+			10000,
+			'Fact Sale',
+			'Fact Sale'[Invoice Date Key]
+			)
+
+	-----------------------------------------------------	
+	
+	http://radacad.com/power-bi-helper
+
+	-----------------------------------------------------	
+	
+	PBIDesktop /diagnosticsport:XXXX
+	
+	-----------------------------------------------------	
+	
+	Select * from $System.discover_object_memory_usage
+	
+	-----------------------------------------------------	
+8.12
+	EVALUATE
+		FILTER(
+			SUMMARIZE(
+				'Fact Sale',
+				'Dimension Date'[Date],
+				'Dimension Date'[Calendar Month Number],
+				'Dimension City'[Sales Territory],
+				"SUM Qty", SUM('Fact Sale'[Quantity]),
+				"YTD Qty", TOTALYTD(
+									SUM('Fact Sale'[Quantity]),
+									'Dimension Date'[Date]
+									)
+				),
+			'Dimension City' [Sales Territory] = "Southeast" && 
+			'Dimension Date'[Calendar Month Number] =11
+			)
+		ORDER BY
+			'Dimension Date'[Date]
+	
+	-----------------------------------------------------
+8.13
+	EVALUATE
+	VAR PreFilteredTable =
+		CALCULATETABLE(
+			SUMMARIZE(
+				'Fact Sale',
+				'Dimension Date'[Date],
+				'Dimension Date'[Calendar Month Number],
+				'Dimension City'[Sales Territory]
+			),
+			'Dimension City'[Sales Territory] = "Southeast",
+			'Dimension Date'[Calendar Month Number] =11
+			)
+	RETURN
+		ADDCOLUMNS(
+			PreFilteredTable,    
+			"SUM Qty", CALCULATE(SUM('Fact Sale'[Quantity])),
+			"YTD Qty", TOTALYTD(
+								SUM('Fact Sale'[Quantity]),
+								'Dimension Date'[Date]
+								)
+			)
+	ORDER BY
+		'Dimension Date'[Date]            
+	
+	-----------------------------------------------------
+CHAPTER 9
+	Numbers =
+		SELECTCOLUMNS(
+			CALENDAR(0,1000),
+			"N", INT ( [Date] )
+		)
+	
+	-----------------------------------------------------	
+	Numbers =
+		SELECTCOLUMNS(
+			GENERATESERIES( 0,1000 ),
+			"N", [Value]
+		)
+	
+	-----------------------------------------------------
+9.1
+	Dates =
+	VAR BaseTable =
+		CALENDAR ( DATE(2016, 1, 1), TODAY () )
+	VAR AddYears =
+		ADDCOLUMNS (
+			BaseTable,
+			"Year", YEAR ( [Date] )
+			)
+	VAR AddMonths =
+		ADDCOLUMNS (
+			AddYears,
+			"Month", DATE(YEAR([Date]),MONTH([Date]),1),
+			"Month label", FORMAT ( [Date], "MMM YY" )
+		)
+	VAR AddDay =
+		ADDCOLUMNS (
+			AddMonths,
+			"Day Label", FORMAT ( [Date], "DDD d MMM YY" )
+			)
+	RETURN
+		AddDay
+	
+	-----------------------------------------------------	
+9.2
+	Sales =
+	VAR FirstTable =
+		SELECTCOLUMNS(
+			FILTER (
+				GENERATE (
+					Dates,
+					Numbers
+					),
+				[N] < RANDBETWEEN ( 2, 7 )
+				),
+			"Date",[Date]
+			)
+	
+	-----------------------------------------------------
+9.3
+	VAR AddPRoduct =
+		ADDCOLUMNS (
+			FirstTable,
+			"Product",	VAR myMake = RANDBETWEEN ( 65, 90 )
+						VAR myModel = FORMAT ( RANDBETWEEN ( 1, 5 ), "-#" )
+						RETURN
+							REPT ( UNICHAR ( myMake ), 3 ) & myModel
+			)
+
+	-----------------------------------------------------	
+9.4
+	VAR AddQuantity =
+		ADDCOLUMNS (
+			AddProduct,
+			"Qty", VAR Q = RANDBETWEEN ( 1, 1000 )
+					RETURN 5 - INT ( LOG ( Q, 4 ) )
+			)
+
+	-----------------------------------------------------	
+9.5
+	VAR AddPrice =
+		ADDCOLUMNS (
+			AddQuantity,
+			"Price", DIVIDE 
+						(
+                         RANDBETWEEN ( 1, 1e5 ),
+                         100 
+						 )
+					)  
+
+	-----------------------------------------------------	
+9.6
+	Sales =
+	VAR FirstTable =
+	SELECTCOLUMNS(
+		FILTER (
+			GENERATE (
+				Dates,
+				Numbers
+			),
+			[N] < RANDBETWEEN ( 2, 7 )
+		),
+		"Date",[Date]) 
+	
+	VAR AddPRoduct =
+		ADDCOLUMNS (
+			FirstTable,
+			"Product",	VAR myMake = RANDBETWEEN ( 65, 90 )
+						VAR myModel = FORMAT ( RANDBETWEEN ( 1, 5 ), "-#" )
+						RETURN
+							REPT ( UNICHAR ( myMake ), 3 ) & myModel
+			)
+	
+	VAR AddQuantity =
+		ADDCOLUMNS (
+			AddProduct,
+			"Qty", VAR Q = RANDBETWEEN ( 1, 1000 )
+					RETURN 5 - INT ( LOG ( Q, 4 ) )
+			)
+			
+	VAR AddPrice =
+		ADDCOLUMNS (
+			AddQuantity,
+			"Price", DIVIDE 
+						(
+                         RANDBETWEEN ( 1, 1e5 ),
+                         100 
+						 )
+					)      
+	VAR AddTotal =
+		ADDCOLUMNS ( AddPrice, "Total", [Price] * [Qty] )
+	RETURN
+		AddTotal    
+	
+	-----------------------------------------------------
+9.7
+	Daily Summary =
+		SUMMARIZECOLUMNS(
+			'Sales'[Date],
+			"Sum of Items Sold", SUM('Sales'[Qty]),
+			"Sum of Revenue", SUM('Sales'[Total])     
+		)
+	
+	-----------------------------------------------------
+9.8
+	Calculate Revenue as Column =
+		CALCULATE(
+            SUM('Daily Summary'[Sum of Revenue]),
+			FILTER(
+				ALL('Daily Summary'),
+				'Daily Summary'[Date]<=EARLIER('Daily Summary'[Date])
+				)   
+            )
+	
+	-----------------------------------------------------
+9.9
+	Calculate Revenue as Measure =
+		CALCULATE(
+            SUM('Daily Summary'[Sum of Revenue]),
+            FILTER(
+				ALLSELECTED('Daily Summary'[Date]),
+				'Daily Summary'[Date]<=MAX('Daily Summary'[Date])
+				)
+            )
+
+	-----------------------------------------------------	
+9.10
+	EVALUATE
+		SELECTCOLUMNS(
+			'Daily Summary', 
+			"Date", 'Daily Summary'[Date], 
+			"Calculate Revenue as Column", 'Daily Summary'[Calculate Revenue as Column]
+             ) 
+		ORDER BY [Date]
+	
+	-----------------------------------------------------	
+9.11
+	EVALUATE
+		SELECTCOLUMNS(
+			'Daily Summary', 
+			"Date", 'Daily Summary'[Date], 
+			"Calculate Revenue as Measure", [Calculate Revenue as Measure]
+			) 
+		ORDER BY [Date]
+	
+	-----------------------------------------------------
+9.12
+	All Sales for Top 10 Products =
+	VAR InnerGroup =
+		SUMMARIZECOLUMNS(
+			-- Group BY --
+			'Sales'[Product],
+			-- Aggregation Column --
+			"Sum of Revenue", SUM('Sales'[Total])
+			)
+	VAR Top10PRoducts =
+		TOPN(
+			10,
+			InnerGroup,
+			[Sum of Revenue],
+			DESC
+			)
+	RETURN
+		NATURALINNERJOIN (
+			'Sales',
+			Top10PRoducts
+			)
+	
+	-----------------------------------------------------	
+9.13
+
+	VAR AddRankColumn =  
+		ADDCOLUMNS(
+			InnerGroup,
+			"My Rank",RANKX( InnerGroup, [Sum of Revenue] )
+			)
+	VAR Top10PRoducts =
+		FILTER(
+			AddRankColumn,
+			[My Rank]<=10
+			)
+	
+	-----------------------------------------------------
+9.14
+	VAR InnerGroup =
+		SUMMARIZECOLUMNS(
+			-- Group BY --
+			'Sales'[Product],
+			'Sales'[Date],
+			-- Aggregation Column --
+			"Daily Revenue", SUM('Sales'[Total])
+			)
+
+	-----------------------------------------------------	
+9.15
+	VAR CopyOfSummaryTable =
+	SELECTCOLUMNS(
+		InnerGroup,
+		"ProductA",[Product],
+		"DateA",[Date],
+		"Daily RevenueA",[Daily Revenue],
+		"RowCounter", 1
+		)
+
+	VAR CrossJoinTables =
+		FILTER(
+			GENERATE( CopyOfSummaryTable, InnerGroup ),
+			[Product] = [ProductA] &&
+			[Daily Revenue]<=[Daily RevenueA]
+            )
+	VAR ProductByDateRanking =
+		GROUPBY(
+		   CrossJoinTables,
+		   [Product],
+		   [Date],
+		   "Daily Revenue", MAXX(
+							  CURRENTGROUP(),
+							  [Daily Revenue]
+							  ),
+		   "Rank",      SUMX(
+							  CURRENTGROUP(),
+							  [RowCounter]
+							  )
+			)  
+
+	-----------------------------------------------------	
+9.16
+	VAR TopTenDaysPerPRoduct =
+		FILTER(
+            ProductByDateRanking,
+            [Rank]<=10
+            )
+	
+	-----------------------------------------------------	
+9.17
+	RETURN OuterGroup =
+		GROUPBY(
+			TopTenDaysPerProduct,
+			-- Group BY --
+			[Product],
+			-- Aggregation Column --
+			"Average of Top 10 Best Days",
+			AVERAGEX(
+				 CURRENTGROUP(), 
+				 [Daily Revenue]
+					)
+		   )
+	
+	-----------------------------------------------------	
+	
+THANK YOU FOR READING MY BOOK	
